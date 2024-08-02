@@ -2,13 +2,16 @@ section .data
     ; Pointers and variables for memory management
     free_list dq memory_start    ; Start with all memory free
 
+    ; Format strings
+    hex_format db "%016llX", 10, 0
+
     ; Logging messages
     alloc_msg db "Allocating memory...", 10, 0
     free_msg db "Freeing memory...", 10, 0
     error_msg db "Error: Allocation failed.", 10, 0
     init_msg db "Initial memory pool setup:", 10, 0
     block_size_msg db "Block size: ", 0
-    done_msg db "Done.", 10, 0
+    done_msg db "Process done...", 10, 0
     new_head_msg db "New free list head:", 10, 0
 
 section .bss
@@ -153,19 +156,22 @@ free_memory:
 
     sub rsp, 32            ; Allocate shadow space for calls
 
-    ; Debug: Print the address to be freed
-    lea rcx, [rel free_msg]
-    call printf
-    mov rax, rdi
-    call print_hex
+    ; Debug: Print the block size being freed
+        lea rcx, [rel block_size_msg]
+        call printf
+        call print_hex
 
     ; Move pointer back to include the size field
     sub rdi, 8
 
+    ; Check if the size field is zero (null check)
+    mov rax, [rdi]
+    cmp rax, 0
+    je .skip_free
+
     ; Debug: Print the block size being freed
     lea rcx, [rel block_size_msg]
     call printf
-    mov rax, [rdi]
     call print_hex
 
     ; Add block to the beginning of the free list
@@ -178,6 +184,11 @@ free_memory:
     call printf
     mov rax, [rel free_list]
     call print_hex
+
+.skip_free:
+    ; Debug: Reached the skip_free section
+    lea rcx, [rel done_msg]
+    call printf
 
     leave
     ret
@@ -195,6 +206,3 @@ print_hex:
 
     leave
     ret
-
-section .data
-hex_format db "%016llX", 10, 0
