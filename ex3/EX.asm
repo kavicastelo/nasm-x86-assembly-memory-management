@@ -55,8 +55,8 @@ main:
     mov byte [rax], 42  ; Example: Store the value 42
 
     ; Free the memory
-    lea rcx, [rel free_msg]
-    call printf
+;    lea rcx, [rel free_msg]
+;    call printf
     mov rdi, rax
     call free_memory
 
