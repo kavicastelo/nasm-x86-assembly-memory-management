@@ -5,21 +5,11 @@ section .data
     ; Logging messages
     alloc_msg db "Allocating memory...", 10, 0
     free_msg db "Freeing memory...", 10, 0
-    compact_msg db "Compacting memory...", 10, 0
-    done_msg db "Done.", 10, 0
-    free_done_msg db "Done freeing memory.", 10, 0
     error_msg db "Error: Allocation failed.", 10, 0
-    before_free_msg db "Before freeing memory...", 10, 0
-    after_free_msg db "After freeing memory...", 10, 0
-    dbg_msg db "Debugging message: ", 10, 0
-    free_list_null_msg db "Free list is NULL", 10, 0
-    block_addr_msg db "Freeing block at address: ", 0
-    free_list_head_msg db "Free list head address: ", 0
-    next_block_msg db "Next block address: ", 0
-    current_block_msg db "Current block address: ", 0
-    block_size_msg db "Block size: ", 0
-    exact_fit_msg db "Exact fit: ", 0
     init_msg db "Initial memory pool setup:", 10, 0
+    block_size_msg db "Block size: ", 0
+    done_msg db "Done.", 10, 0
+    new_head_msg db "New free list head:", 10, 0
 
 section .bss
     buffer resb 256  ; Buffer for testing allocations
@@ -67,11 +57,6 @@ main:
     mov rdi, rax
     call free_memory
 
-    ; Compact memory (not yet implemented)
-    lea rcx, [rel compact_msg]
-    call printf
-    ; call compact_memory
-
     ; Log: Done
     lea rcx, [rel done_msg]
     call printf
@@ -98,6 +83,11 @@ allocate_memory:
     push rbp
     mov rbp, rsp
 
+    sub rsp, 32    ; Allocate shadow space for calls
+
+    ; Preserve the requested size in rsi
+    mov rsi, rcx
+
     ; Add space for storing block size
     add rcx, 8
 
@@ -108,7 +98,8 @@ allocate_memory:
     test rbx, rbx
     jz alloc_error_alloc   ; No suitable block found
 
-    mov rdx, [rbx]         ; Get the size of the current block
+    ; Get the size of the current block
+    mov rdx, [rbx]
     cmp rdx, rcx
     jae allocate_here      ; If block size >= requested size, allocate here
 
@@ -117,16 +108,6 @@ allocate_memory:
     jmp .find_block
 
 allocate_here:
-    ; Debugging: Print the current block address and its size
-    lea rcx, [rel current_block_msg]
-    call printf
-    mov rax, rbx
-    call print_hex          ; Print block address in hexadecimal
-    lea rcx, [rel block_size_msg]
-    call printf
-    mov rax, rdx
-    call print_hex          ; Print block size
-
     ; Check if the block can be split
     sub rdx, rcx
     cmp rdx, 16            ; If leftover size is too small, don't split
@@ -154,16 +135,6 @@ exact_fit:
     mov rdx, [rbx + 8]     ; Get the next block pointer
     mov [rel free_list], rdx   ; Update the free list head
 
-    ; Debug: Print the exact fit block address and size
-    lea rcx, [rel exact_fit_msg]
-    call printf
-    mov rax, rbx
-    call print_hex          ; Print exact fit block address
-    lea rcx, [rel block_size_msg]
-    call printf
-    mov rax, [rbx - 8]
-    call print_hex          ; Print block size
-
     add rbx, 8             ; Move to the user part of the block
     mov rax, rbx
     leave
@@ -174,42 +145,39 @@ alloc_error_alloc:
     leave
     ret
 
-
 ; Free memory and add it back to the free list
 ; Input: rdi = pointer to memory to be freed
 free_memory:
     push rbp
     mov rbp, rsp
 
-    ; Debug: Log the address of the block to be freed
-    lea rcx, [rel block_addr_msg]
+    sub rsp, 32            ; Allocate shadow space for calls
+
+    ; Debug: Print the address to be freed
+    lea rcx, [rel free_msg]
     call printf
     mov rax, rdi
-    call print_hex          ; Print block address in hexadecimal
+    call print_hex
 
     ; Move pointer back to include the size field
     sub rdi, 8
 
-    ; Debug: Log the current free list head
-    lea rcx, [rel free_list_head_msg]
+    ; Debug: Print the block size being freed
+    lea rcx, [rel block_size_msg]
     call printf
-    mov rax, [rel free_list]
-    call print_hex          ; Print free list head in hexadecimal
+    mov rax, [rdi]
+    call print_hex
 
     ; Add block to the beginning of the free list
     mov rdx, [rel free_list]
     mov [rdi + 8], rdx     ; Set the next pointer to the current free list head
     mov [rel free_list], rdi   ; Update the free list head
 
-    ; Debug: Log the next block address in the free list
-    lea rcx, [rel next_block_msg]
+    ; Debug: Print the new free list head
+    lea rcx, [rel new_head_msg]
     call printf
-    mov rax, [rdi + 8]
-    call print_hex          ; Print next block address in hexadecimal
-
-    ; Debug: Log after adding back to the free list
-    lea rcx, [rel free_done_msg]
-    call printf
+    mov rax, [rel free_list]
+    call print_hex
 
     leave
     ret
