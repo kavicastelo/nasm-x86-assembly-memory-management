@@ -1,0 +1,4 @@
+nasm -f win64 EX.asm -o Ex.o
+gcc -m64 -o EX EX.o -lkernel32 -lmsvcrt
+
+.\EX.exe
