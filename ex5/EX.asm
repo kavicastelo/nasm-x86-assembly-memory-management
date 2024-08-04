@@ -1,5 +1,5 @@
 section .data
-    cmd_line db "C:\Windows\System32\cmd.exe", 0
+    cmd_line db "C:\Windows\System32\notepad.exe", 0
     create_process_msg db "Creating process...", 13, 10, 0
     process_done_msg db "Process completed with exit code: %d", 13, 10, 0
     error_msg db "Error: Could not create process.", 13, 10, 0
@@ -11,7 +11,7 @@ section .bss
     exit_code resd 1                ; to store the process exit code
 
 section .text
-    extern CreateProcessA, WaitForSingleObject, GetExitCodeProcess, printf, ExitProcess, CloseHandle, GetLastError
+    extern CreateProcessA, WaitForSingleObject, GetExitCodeProcess, printf, ExitProcess, CloseHandle, GetLastError, getchar
     global main
 
 main:
@@ -75,6 +75,8 @@ main:
     mov rcx, [rel pi + 8]               ; pi.hThread
     call CloseHandle
 
+    call getchar
+
     ; Exit the program
     xor ecx, ecx
     call ExitProcess
@@ -89,6 +91,8 @@ process_creation_failed:
     mov edx, eax
     lea rcx, [rel error_code_msg]
     call printf
+
+    call getchar
 
     ; Exit with error code
     mov ecx, 1
