@@ -1,4 +1,4 @@
-# Assembly Memory Management Examples
+# NASM x86 Assembly Memory Management Examples
 
 This repository contains examples of memory management implemented in x86-64 assembly on Windows. Each example
 demonstrates different approaches to handling memory allocation and deallocation.
